@@ -8,6 +8,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="springbatchcompositeitemprocessor" />
         <module name="springbatch" />
+        <module name="JdbcPagingItemReader-spring-batch-example" />
         <module name="springbatchjdbccursoritemreader" />
         <module name="springbatchjdbcjdbcpagingitemreader" />
       </profile>
@@ -15,6 +16,7 @@
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="JdbcPagingItemReader-spring-batch-example" options="-parameters" />
       <module name="springbatch" options="-parameters" />
       <module name="springbatchcompositeitemprocessor" options="-parameters" />
       <module name="springbatchjdbccursoritemreader" options="-parameters" />

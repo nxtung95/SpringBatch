@@ -15,7 +15,9 @@ import org.springframework.batch.core.step.builder.SimpleStepBuilder;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.Order;
+import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.support.MySqlPagingQueryProvider;
+import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
@@ -27,6 +29,7 @@ import org.springframework.core.io.FileSystemResource;
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @EnableBatchProcessing
 @Configuration
@@ -43,23 +46,25 @@ public class SpringBatchConfig {
     private StepBuilderFactory stepBuilderFactory;
 
     @Bean
-    public JdbcPagingItemReader<Student> jdbcPagingItemReader() {
+    public JdbcPagingItemReader<Student> jdbcPagingItemReader() throws Exception {
         JdbcPagingItemReader<Student> pagingItemReader = new JdbcPagingItemReader<>();
 
         pagingItemReader.setDataSource(dataSource);
-        pagingItemReader.setFetchSize(20);
+//        pagingItemReader.setFetchSize(20);
         pagingItemReader.setRowMapper(new StudentResultRowMapper());
-        pagingItemReader.setPageSize(1);
+        pagingItemReader.setPageSize(2);
 
-        MySqlPagingQueryProvider mySqlPagingQueryProvider = new MySqlPagingQueryProvider();
-        mySqlPagingQueryProvider.setSelectClause("id, roll_number, name");
-        mySqlPagingQueryProvider.setFromClause("from student");
+        SqlPagingQueryProviderFactoryBean sqlPagingQueryProviderFactoryBean = new SqlPagingQueryProviderFactoryBean();
+        sqlPagingQueryProviderFactoryBean.setDataSource(dataSource);
+        sqlPagingQueryProviderFactoryBean.setSelectClause("a.id as 'a.id', a.roll_number, a.name, b.id as bId, b.demo");
+        sqlPagingQueryProviderFactoryBean.setFromClause("from student a JOIN student_demo b ON a.id = b.student_id ");
 
         Map<String, Order> orderByName = new HashMap<>();
-        orderByName.put("name", Order.ASCENDING);
+        orderByName.put("a.id", Order.ASCENDING);
 
-        mySqlPagingQueryProvider.setSortKeys(orderByName);
-        pagingItemReader.setQueryProvider(mySqlPagingQueryProvider);
+        sqlPagingQueryProviderFactoryBean.setSortKeys(orderByName);
+        pagingItemReader.setQueryProvider(Objects.requireNonNull(sqlPagingQueryProviderFactoryBean.getObject()));
+
 
         return pagingItemReader;
     }
@@ -84,17 +89,22 @@ public class SpringBatchConfig {
     }
 
     @Bean
-    public Step getDbToCsvStep() {
+    public Step getDbToCsvStep() throws Exception {
         StepBuilder stepBuilder = stepBuilderFactory.get("getDbToCsvStep");
         SimpleStepBuilder<Student, Student> simpleStepBuilder = stepBuilder.chunk(1);
         return simpleStepBuilder.reader(jdbcPagingItemReader()).processor(processor()).writer(writer()).build();
     }
 
     @Bean
-    public Job dbToCsvJob() {
+    public Job dbToCsvJob()  {
         JobBuilder jobBuilder = jobBuilderFactory.get("dbToCsvJob");
         jobBuilder.incrementer(new RunIdIncrementer());
-        FlowJobBuilder flowJobBuilder = jobBuilder.flow(getDbToCsvStep()).end();
+        FlowJobBuilder flowJobBuilder = null;
+        try {
+            flowJobBuilder = jobBuilder.flow(getDbToCsvStep()).end();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         Job job = flowJobBuilder.build();
         return job;
     }

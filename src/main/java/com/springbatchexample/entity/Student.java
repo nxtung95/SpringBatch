@@ -5,6 +5,8 @@ public class Student {
     private Long id;
     private String name;
     private String rollNumber;
+    private Long demoId;
+    private String demoName;
 
     public Student() {
 
@@ -40,4 +42,19 @@ public class Student {
         this.rollNumber = rollNumber;
     }
 
+    public Long getDemoId() {
+        return demoId;
+    }
+
+    public void setDemoId(Long demoId) {
+        this.demoId = demoId;
+    }
+
+    public String getDemoName() {
+        return demoName;
+    }
+
+    public void setDemoName(String demoName) {
+        this.demoName = demoName;
+    }
 }
